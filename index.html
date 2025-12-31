@@ -2,10 +2,7 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bildirim Kaydı - Staj Takip Sistemi</title>
-    
-    <!-- Webpushr SDK -->
+    <title>Bildirim Kaydı - Staj Takip</title>
     <script>
     (function (w, d, s, id) {
         if (typeof (w.webpushr) !== 'undefined') return;
@@ -20,46 +17,37 @@
         'key': 'BCAqoBi7PifomzI8rpkbs2lxqKu1LrWNJCfOf22kC8BPbejb-_XKTe9ZK9SgOLt54U9RDZ4cX7-XzP5dr3ckVWc' 
     });
 
-    // --- KRİTİK KISIM: KULLANICIYI ETİKETLEME ---
-    // URL'den kullanıcı adını al (Örn: ?uid=uzay)
     const urlParams = new URLSearchParams(window.location.search);
     const userId = urlParams.get('uid');
 
-    if (userId) {
-        // Webpushr sistemine bu cihazın kime ait olduğunu bildiriyoruz
-        webpushr('attributes', { "user_id": userId });
-        console.log("Cihaz şu kullanıcıya bağlandı: " + userId);
+    // FONKSİYON: Etiketi Webpushr'a gönderir
+    function tagUser() {
+        if (userId) {
+            webpushr('attributes', { "user_id": userId.toString() });
+            console.log("Etiketleme denendi: " + userId);
+        }
     }
 
-    // Kullanıcı "İzin Ver" dediğinde ne olacağını belirleyelim
+    // 1. Sayfa açıldıktan 3 saniye sonra gönder (Zaten aboneyse çalışır)
+    window.onload = function() {
+        setTimeout(tagUser, 3000);
+    };
+
+    // 2. Kullanıcı "İzin Ver" dediği an gönder (Yeni aboneler için en garantisi)
     webpushr('onNotificationPromptAction', function(action) {
         if (action === 'allow') {
-            document.getElementById('status-text').innerHTML = "<b style='color:green;'>İşlem Başarılı!</b><br>Kaydınız tamamlandı. Bu pencereyi kapatıp uygulamaya dönebilirsiniz.";
-            // 3 saniye sonra pencereyi otomatik kapatmayı dene (her tarayıcı izin vermeyebilir)
-            setTimeout(() => { window.close(); }, 3000);
+            setTimeout(tagUser, 1000); // İzin sonrası 1 sn bekle ve etiketle
+            document.getElementById('status-text').innerHTML = "<b style='color:green;'>İşlem Başarılı!</b><br>Kaydınız yapıldı. Bu pencere 5 saniye içinde kapanacaktır.";
+            setTimeout(() => { window.close(); }, 5000);
         }
     });
     </script>
 </head>
-<body style="text-align:center; font-family:sans-serif; padding-top:50px; background-color:#f4f4f4; color: #333;">
+<body style="text-align:center; font-family:sans-serif; padding-top:50px; background-color:#f4f4f4;">
     <div style="background:white; padding:30px; border-radius:15px; box-shadow:0 5px 15px rgba(0,0,0,0.1); display:inline-block; max-width:90%; width: 400px;">
-        <h2 style="margin-top:0; color:#2ecc71;">🔔 Duyuru Kaydı</h2>
-        <p id="status-text">Bildirimleri aktif etmek için lütfen aşağıdaki butona basın ve çıkan kutucukta <b>"İzin Ver"</b> deyin.</p>
-        
-        <hr style="border:0; border-top:1px solid #eee; margin:20px 0;">
-
-        <!-- Webpushr Abonelik Butonu -->
-        <div id="webpushr-subscription-button" 
-             data-button-text="BİLDİRİMLERİ AKTİF ET" 
-             data-subscriber-count-text="Kullanıcı Kayıtlı." 
-             data-background-color="#2ecc71" 
-             data-color="#ffffff">
-        </div>
-
-        <p style="margin-top:20px; font-size:12px; color:#999;">
-            Zaten abonesiniz butonu görmeyebilirsiniz.<br>
-            Bu işlem cihaz bazlıdır (Android ve Windows için ayrı ayrı yapılmalıdır).
-        </p>
+        <h2 style="color:#2ecc71;">🔔 Duyuru Kaydı</h2>
+        <p id="status-text">Bildirimleri aktif etmek için butona basın ve <b>"İzin Ver"</b> deyin.</p>
+        <div id="webpushr-subscription-button" data-button-text="BİLDİRİMLERİ AKTİF ET" data-background-color="#2ecc71" data-color="#ffffff"></div>
     </div>
 </body>
 </html>
