@@ -2,52 +2,44 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>Bildirim Kaydı - Staj Takip</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Duyuru Kaydı - OneSignal</title>
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js" defer></script>
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <script>
-    (function (w, d, s, id) {
-        if (typeof (w.webpushr) !== 'undefined') return;
-        w.webpushr = w.webpushr || function () { (w.webpushr.q = w.webpushr.q || []).push(arguments); };
-        var js, fjs = d.getElementsByTagName(s)[0];
-        js = d.createElement(s); js.id = id; js.async = 1;
-        js.src = "https://cdn.webpushr.com/app.min.js";
-        fjs.parentNode.insertBefore(js, fjs);
-    }(window, document, 'script', 'webpushr-jssdk'));
+      window.OneSignal = window.OneSignal || [];
+      
+      const urlParams = new URLSearchParams(window.location.search);
+      const userId = urlParams.get('uid');
+      const appId = urlParams.get('appid'); // AppScript'ten gelen uygulama ID'si
 
-    webpushr('setup', { 
-        'key': 'BCAqoBi7PifomzI8rpkbs2lxqKu1LrWNJCfOf22kC8BPbejb-_XKTe9ZK9SgOLt54U9RDZ4cX7-XzP5dr3ckVWc' 
-    });
+      OneSignal.push(function() {
+        OneSignal.init({
+          appId: appId, // Dinamik App ID
+          allowLocalhostAsSecureOrigin: true,
+        });
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const userId = urlParams.get('uid');
-
-    // FONKSİYON: Etiketi Webpushr'a gönderir
-    function tagUser() {
+        // Eğer kullanıcı adı gelmişse cihazla eşleştir
         if (userId) {
-            webpushr('attributes', { "user_id": userId.toString() });
-            console.log("Etiketleme denendi: " + userId);
+            OneSignal.login(userId); // OneSignal'da kullanıcıyı eşleştirmenin en modern yolu
+            console.log("Kullanıcı eşleşti: " + userId);
         }
-    }
+      });
 
-    // 1. Sayfa açıldıktan 3 saniye sonra gönder (Zaten aboneyse çalışır)
-    window.onload = function() {
-        setTimeout(tagUser, 3000);
-    };
-
-    // 2. Kullanıcı "İzin Ver" dediği an gönder (Yeni aboneler için en garantisi)
-    webpushr('onNotificationPromptAction', function(action) {
-        if (action === 'allow') {
-            setTimeout(tagUser, 1000); // İzin sonrası 1 sn bekle ve etiketle
-            document.getElementById('status-text').innerHTML = "<b style='color:green;'>İşlem Başarılı!</b><br>Kaydınız yapıldı. Bu pencere 5 saniye içinde kapanacaktır.";
-            setTimeout(() => { window.close(); }, 5000);
+      // Kayıt başarılı olduğunda kullanıcıya bilgi ver
+      OneSignal.on('subscriptionChange', function (isSubscribed) {
+        if (isSubscribed) {
+            document.getElementById('status-text').innerHTML = "<b style='color:green;'>İşlem Başarılı!</b><br>Kaydınız yapıldı. Bu pencereyi kapatabilirsiniz.";
+            setTimeout(() => { window.close(); }, 4000);
         }
-    });
+      });
     </script>
 </head>
 <body style="text-align:center; font-family:sans-serif; padding-top:50px; background-color:#f4f4f4;">
     <div style="background:white; padding:30px; border-radius:15px; box-shadow:0 5px 15px rgba(0,0,0,0.1); display:inline-block; max-width:90%; width: 400px;">
-        <h2 style="color:#2ecc71;">🔔 Duyuru Kaydı</h2>
-        <p id="status-text">Bildirimleri aktif etmek için butona basın ve <b>"İzin Ver"</b> deyin.</p>
-        <div id="webpushr-subscription-button" data-button-text="BİLDİRİMLERİ AKTİF ET" data-background-color="#2ecc71" data-color="#ffffff"></div>
+        <h2 style="color:#eb4d4b;">🔔 Duyuru Kaydı</h2>
+        <p id="status-text">Lütfen çıkan bildirim kutusunda <b>"İzin Ver"</b> butonuna basın.</p>
+        <p style="font-size:12px; color:#888;">(Pencere açılmazsa lütfen sayfayı yenileyin.)</p>
     </div>
 </body>
 </html>
