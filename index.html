@@ -3,48 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bildirim Kaydı</title>
-    <!-- OneSignal v16 SDK (En güncel sürüm) -->
+    <title>Duyuru Kaydı - OneSignal</title>
+    <!-- OneSignal v16 SDK -->
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-    
     <script>
       window.OneSignal = window.OneSignal || [];
+      
+      // URL parametrelerini oku
       const urlParams = new URLSearchParams(window.location.search);
-      const uid = urlParams.get('uid'); // Kullanıcı adı
-      const appId = urlParams.get('appid'); // Panelden gelen AppID
+      const uidParam = urlParams.get('uid');   // Apps Script'ten gelen uid
+      const appIdParam = urlParams.get('appid'); // Apps Script'ten gelen appid
 
       OneSignal.push(async function() {
-          await OneSignal.init({
-            appId: appId,
-            allowLocalhostAsSecureOrigin: true,
-          });
-    
-          // URL'den kullanıcı adı ve rolü alıyoruz
-          const role = urlParams.get('role'); // ?uid=uzay&role=Öğrenci
-    
-          if (uid) {
-            await OneSignal.login(uid); 
-          
-            // KRİTİK EKLEME: Rol bilgisini OneSignal'a etiket olarak gönderiyoruz
-            if (role) {
-                OneSignal.User.addTag("user_role", role); 
-                console.log("Rol etiketlendi: " + role);
-            }
-          }
-          setTimeout(async () => {
-            console.log("Bildirim izni isteniyor...");
-            await OneSignal.Notifications.requestPermission();
-          }, 1000);    
-          
+        // OneSignal'ı başlat
+        await OneSignal.init({
+          appId: appIdParam,
+          allowLocalhostAsSecureOrigin: true,
+        });
+
+        // Kullanıcı adını OneSignal'a login et (UID eşleme)
+        if (uidParam) {
+            await OneSignal.login(uidParam);
+            console.log("Kullanıcı eşleşti: " + uidParam);
+        }
+
+        // İzin iste (Kutucuğu zorla açtır)
+        console.log("İzin isteniyor...");
+        await OneSignal.Notifications.requestPermission();
       });
-        
 
-
-      // İzin durumunu dinle
+      // İzin verildiğinde sayfayı kapat
       OneSignal.Notifications.addEventListener("permissionChange", (permission) => {
         if (permission) {
-            document.getElementById('status-text').innerHTML = "<b style='color:green;'>İŞLEM BAŞARILI!</b><br>Sistem kaydınız yapıldı.";
-            // Başarılıysa 3 saniye sonra pencereyi kapat
+            document.getElementById('status-text').innerHTML = "<b style='color:green;'>İŞLEM BAŞARILI!</b><br>Kayıt yapıldı. Pencere kapatılıyor...";
             setTimeout(() => { window.close(); }, 3000);
         }
       });
@@ -52,10 +43,10 @@
 </head>
 <body style="text-align:center; font-family:sans-serif; padding-top:50px; background-color:#f4f4f4;">
     <div style="background:white; padding:30px; border-radius:15px; box-shadow:0 5px 15px rgba(0,0,0,0.1); display:inline-block; width:90%; max-width:400px;">
-        <h2>🔔 Duyuru Kaydı</h2>
-        <p id="status-text">Lütfen yukarıda açılan kutucukta <b>"İzin Ver"</b> butonuna basarak işlemi tamamlayın.</p>
+        <h2 style="color:#eb4d4b;">🔔 Duyuru Kaydı</h2>
+        <p id="status-text">Lütfen tarayıcının üst kısmında çıkan kutucukta <b>"İzin Ver"</b> butonuna basın.</p>
         <hr style="border:0; border-top:1px solid #eee; margin:20px 0;">
-        <p style="font-size:12px; color:#666;">Kayıt yapıldıktan sonra bu pencere otomatik olarak kapanacaktır.</p>
+        <p style="font-size:11px; color:#999;">Kutu otomatik açılmazsa sayfayı yenileyiniz.</p>
     </div>
 </body>
 </html>
