@@ -32,15 +32,15 @@
         }
 
         window.OneSignal = window.OneSignal || [];
-        OneSignal.push(function() {
-            OneSignal.init({
+        OneSignal.push(async function() {
+            await OneSignal.init({
                 appId: appId,
                 allowLocalhostAsSecureOrigin: true,
                 notifyButton: { enabled: false }
             });
 
             if (uid) {
-                OneSignal.login(uid);
+                await OneSignal.login(uid);
             }
 
             // SDK hazır – butonu aktif et
@@ -85,12 +85,10 @@
             };
 
             // Zaten aboneyse otomatik başarı
-            OneSignal.push(async function() {
-                const subId = await OneSignal.User.PushSubscription.id;
-                if (subId) {
-                    showSuccess();
-                }
-            });
+            const subId = await OneSignal.User.PushSubscription.id;
+            if (subId) {
+                showSuccess();
+            }
         });
 
         function showSuccess() {
