@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistem Kaydı - Staj Takip</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <!-- OneSignal SDK - defer kaldırıldı, doğrudan yüklensin -->
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" async></script>
 </head>
 <body style="text-align:center; font-family:sans-serif; padding:20px; background-color:#f4f4f4; color:#333;">
@@ -32,50 +31,42 @@
             window.close();
         }
 
-        // OneSignal hazır olduğunda çalışacak
         window.OneSignal = window.OneSignal || [];
         OneSignal.push(function() {
             OneSignal.init({
                 appId: appId,
                 allowLocalhostAsSecureOrigin: true,
-                serviceWorkerPath: 'OneSignalSDKWorker.js',
-                notifyButton: {
-                    enabled: false
-                }
+                // serviceWorkerPath ve param kaldırıldı – otomatik yönetiliyor
+                notifyButton: { enabled: false }
             });
 
-            // Kullanıcı login
             if (uid) {
                 OneSignal.login(uid);
             }
 
-            // Buton fonksiyonu
-            document.getElementById('setup-btn').onclick = async function runAutoSetup() {
+            document.getElementById('setup-btn').onclick = async function() {
                 const statusText = document.getElementById('status-text');
-                const btn = document.getElementById('setup-btn');
+                const btn = this;
                 btn.disabled = true;
-                statusText.innerHTML = "İzinler kontrol ediliyor...";
+                statusText.innerHTML = "İzin isteniyor...";
 
                 try {
-                    // Eğer zaten izin verilmişse
                     if (Notification.permission === "granted") {
                         showSuccess();
                         return;
                     }
 
-                    // Engellenmişse
                     if (Notification.permission === "denied") {
                         showFixGuide();
                         return;
                     }
 
-                    statusText.innerHTML = "<b>Lütfen çıkan kutucukta 'İzin Ver' butonuna basın.</b>";
+                    statusText.innerHTML = "<b>Lütfen çıkan izin kutusuna 'İzin Ver' basın.</b>";
 
-                    // Manuel izin iste
                     const permission = await OneSignal.Notifications.requestPermission();
 
                     if (permission === "granted") {
-                        statusText.innerHTML = "Tebrikler! Cihazınız tescil ediliyor...";
+                        statusText.innerHTML = "Başarılı! Cihazınız kaydediliyor...";
                         setTimeout(showSuccess, 1500);
                     } else {
                         showFixGuide();
@@ -87,10 +78,10 @@
                 }
             };
 
-            // Eğer zaten aboneyse otomatik başarı göster
+            // Zaten aboneyse otomatik başarı
             OneSignal.push(async function() {
-                const isSubscribed = await OneSignal.User.PushSubscription.getId();
-                if (isSubscribed) {
+                const subId = await OneSignal.User.PushSubscription.id;
+                if (subId) {
                     showSuccess();
                 }
             });
@@ -108,7 +99,7 @@
         function showFixGuide() {
             document.getElementById('main-card').innerHTML = `
                 <h3 style="color:#e74c3c;">⚠️ Bildirimler Engellenmiş</h3>
-                <p style="text-align:left; font-size:14px;">Tarayıcınız bildirimleri engelliyor. Lütfen düzeltin:</p>
+                <p style="text-align:left; font-size:14px;">Tarayıcı ayarlarından manuel izin verin:</p>
                 <div style="background:#fff5f5; padding:15px; border-radius:10px; text-align:left; border:1px solid #fab1a0;">
                     <b>1.</b> Adres çubuğundaki kilit simgesine dokunun.<br>
                     <b>2.</b> "Bildirimler" > "İzin Ver" seçin.<br>
