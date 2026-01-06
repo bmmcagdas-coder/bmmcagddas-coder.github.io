@@ -21,11 +21,10 @@
         OneSignalDeferred.push(async function(OneSignal) {
             try {
                 await OneSignal.init({
-
                     appId: appId,
                     allowLocalhostAsSecureOrigin: true,
                     serviceWorkerParam: { scope: '/' },
-                    serviceWorkerPath: 'OneSignalSDKWorker.js', // Service worker hatasını önler
+                    serviceWorkerPath: 'OneSignalSDKWorker.js',
                     promptOptions: {
                         slidedown: {
                             enabled: true,
@@ -40,7 +39,7 @@
                         }
                     },
                     notifyButton: {
-                        enabled: false  // <<< ABONELİKTEN ÇIK BUTONU TAMAMEN KAPATILDI >>>
+                        enabled: false  // Abonelikten çık butonu kapalı
                     }
                 });
 
@@ -50,19 +49,31 @@
                 // Rol tag'i ekle
                 await OneSignal.User.addTag("role", role);
 
-                // Slidedown kabul edildikten sonra native prompt bekleniyor
+                // === YENİ: Slidedown kabul edildiğinde native prompt'u zorla tetikle ===
+                OneSignal.Slidedown.addEventListener("slidedownShown", () => {
+                    // Slidedown gösterildiğinde kullanıcıyı bilgilendir
+                    console.log("Slidedown gösterildi");
+                });
+
+                OneSignal.Slidedown.addEventListener("slidedownAccept", async () => {
+                    console.log("Kullanıcı 'Evet, İzin Ver' dedi – native prompt tetikleniyor");
+                    // Native izin kutusunu manuel olarak iste (Android'da daha stabil)
+                    await OneSignal.Notifications.requestPermission();
+                });
+
+                // === Native izin değişimini dinle ===
                 OneSignal.Notifications.addEventListener("permissionChange", (granted) => {
                     if (granted) {
                         showSuccessMessage();
                     }
                 });
 
-                // Hemen başarı mesajını gösterme, native prompt için bekle
+                // === 4 saniye sonra hala izin yoksa uyarı göster ===
                 setTimeout(() => {
                     if (!OneSignal.Notifications.permission) {
                         showPartialSuccessMessage();
                     }
-                }, 3000);
+                }, 4000);
 
             } catch (e) {
                 console.error("OneSignal hatası:", e);
@@ -75,28 +86,26 @@
                 <div style="text-align:center; margin-top:100px; color:#2ecc71; font-family:Arial, sans-serif;">
                     <h2>✅ Kayıt Başarıyla Tamamlandı!</h2>
                     <p>Duyuruları ve maaş bildirimlerini alacaksınız.</p>
-                    <p><strong>Tarayıcıda çıkan "İzin Ver" kutusuna da bastığınızdan emin olun.</strong></p>
+                    <p><strong>Tarayıcı izin kutusuna da "İzin Ver" bastığınızdan emin olun.</strong></p>
                     <p>Bu pencereyi güvenle kapatabilirsiniz.</p>
                 </div>`;
         }
-
 
         function showPartialSuccessMessage() {
             document.body.innerHTML = `
                 <div style="text-align:center; margin-top:100px; color:#e67e22; font-family:Arial, sans-serif;">
                     <h2>⏳ İzin Kutusu Bekleniyor...</h2>
-                    <p style="font-size:1.1em;"><strong>Tarayıcı izin kutusu (tam ekran popup) çıkacak – LÜTFEN BEKLEYİN!</strong></p>
-                    <p>Kutu çıkmazsa veya kapanırsa:</p>
-                    <ol style="text-align:left; display:inline-block;">
-                        <li>Chrome Ayarlar > Site ayarları > Bildirimler > Siteyi bul > "İzin Ver" yapın.</li>
-                        <li>Veya sayfayı yenileyin.</li>
+                    <p style="font-size:1.1em;"><strong>Lütfen tarayıcıdan çıkan tam ekran izin kutusuna "İzin Ver" basın!</strong></p>
+                    <p>Kutu çıkmadıysa veya kapandıysa:</p>
+                    <ol style="text-align:left; display:inline-block; margin:20px 0;">
+                        <li>Chrome > Ayarlar > Site ayarları > Bildirimler</li>
+                        <li>Siteyi bulup <strong>"İzin Ver"</strong> seçin.</li>
                     </ol>
-                    <p style="color:red; font-weight:bold;">Pencereyi kapatmayın, 20 saniye bekleyin!</p>
+                    <p style="color:red; font-weight:bold;">Pencereyi kapatmayın – 20 saniye bekleyin!</p>
                 </div>`;
-            // 20 sn sonra otomatik kapat (kullanıcı sıkılmasın)
             setTimeout(() => { window.close(); }, 20000);
-        }        
-        
+        }
+
         function showErrorMessage(msg) {
             document.body.innerHTML = `
                 <div style="text-align:center; margin-top:100px; color:red; font-family:Arial, sans-serif;">
@@ -111,7 +120,7 @@
     <div style="background:white; padding:40px; border-radius:20px; box-shadow:0 10px 30px rgba(0,0,0,0.1); max-width:500px; margin:0 auto;">
         <h2 style="color:#2ecc71;">🔔 Bildirim Kaydı Yapılıyor...</h2>
         <p style="font-size:1.2em; margin:30px 0;">Lütfen çıkan <b>"Evet, İzin Ver"</b> butonuna basın.</p>
-        <p><small>iPhone kullanıyorsanız siteyi <b>Ana Ekrana Ekleyin</b> ve oradan açın.</small></p>
+        <p><small>Android'de izin kutusu gecikebilir. Çıkmazsa Chrome ayarlarından manuel izin verin.</small></p>
     </div>
 </body>
 </html>
