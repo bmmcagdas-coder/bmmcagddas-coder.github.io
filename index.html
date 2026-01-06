@@ -3,53 +3,124 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Duyuru Kaydı - Staj Takip</title>
+    <title>Duyuru Kaydı</title>
+    <!-- OneSignal v16 SDK -->
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <script>
-      window.OneSignal = window.OneSignal || [];
-      const urlParams = new URLSearchParams(window.location.search);
-      const uid = urlParams.get('uid');
-      const appId = urlParams.get('appid');
+        const urlParams = new URLSearchParams(window.location.search);
+        const uid = urlParams.get('uid');
+        const appId = urlParams.get('appid');
+        const role = urlParams.get('role') || "Bilinmiyor";
 
-      OneSignal.push(async function() {
-          await OneSignal.init({
-            appId: appId,
-            allowLocalhostAsSecureOrigin: true,
-            serviceWorkerPath: 'OneSignalSDKWorker.js' // Dosyayı zorla tanıtıyoruz
-          });
+        if (!uid || !appId) {
+            document.body.innerHTML = '<h2 style="color:red; text-align:center; margin-top:100px;">Geçersiz kayıt linki!</h2>';
+            throw new Error("Geçersiz parametreler");
+        }
 
-          if (uid) {
-            await OneSignal.login(uid);
-            console.log("Giriş yapıldı: " + uid);
-          }
+        window.OneSignalDeferred = window.OneSignalDeferred || [];
+        OneSignalDeferred.push(async function(OneSignal) {
+            try {
+                await OneSignal.init({
+                    appId: appId,
+                    allowLocalhostAsSecureOrigin: true,
+                    serviceWorkerParam: { scope: '/' },
+                    serviceWorkerPath: 'OneSignalSDKWorker.js',
+                    promptOptions: {
+                        slidedown: {
+                            enabled: true,
+                            autoPrompt: true,
+                            timeDelay: 0,
+                            pageViews: 1,
+                            text: {
+                                actionMessage: "Staj duyuruları ve maaş bildirimlerini anlık almak ister misiniz?",
+                                acceptButton: "Evet, İzin Ver",
+                                cancelButton: "Hayır, Teşekkürler"
+                            }
+                        }
+                    },
+                    notifyButton: {
+                        enabled: false  // Abonelikten çık butonu kapalı
+                    }
+                });
 
-          // İzin iste
-          await OneSignal.Notifications.requestPermission();
-      });
+                // Kullanıcıyı login et
+                await OneSignal.login(uid);
 
-      // ABONELİK TAMAMLANDIĞINDA TETİKLENİR
-      OneSignal.User.PushSubscription.addEventListener("change", (event) => {
-          if (event.current.token) {
-              // BURASI ÇALIŞIRSA KAYIT TAMAMDIR
-              document.getElementById('status-text').innerHTML = 
-                "<b style='color:green; font-size:20px;'>İŞLEM BAŞARILI!</b><br>" +
-                "Cihazınız sisteme tescil edildi.<br><small>Bu pencere 5 saniye içinde kapanacaktır.</small>";
-              console.log("Abonelik Başarılı. ID: " + event.current.id);
-              
-              // Başarıdan sonra 5 saniye bekle ve kapat
-              setTimeout(() => { window.close(); }, 5000);
-          }
-      });
+                // Rol tag'i ekle
+                await OneSignal.User.addTag("role", role);
+
+                // === YENİ: Slidedown kabul edildiğinde native prompt'u zorla tetikle ===
+                OneSignal.Slidedown.addEventListener("slidedownShown", () => {
+                    // Slidedown gösterildiğinde kullanıcıyı bilgilendir
+                    console.log("Slidedown gösterildi");
+                });
+
+                OneSignal.Slidedown.addEventListener("slidedownAccept", async () => {
+                    console.log("Kullanıcı 'Evet, İzin Ver' dedi – native prompt tetikleniyor");
+                    // Native izin kutusunu manuel olarak iste (Android'da daha stabil)
+                    await OneSignal.Notifications.requestPermission();
+                });
+
+                // === Native izin değişimini dinle ===
+                OneSignal.Notifications.addEventListener("permissionChange", (granted) => {
+                    if (granted) {
+                        showSuccessMessage();
+                    }
+                });
+
+                // === 4 saniye sonra hala izin yoksa uyarı göster ===
+                setTimeout(() => {
+                    if (!OneSignal.Notifications.permission) {
+                        showPartialSuccessMessage();
+                    }
+                }, 4000);
+
+            } catch (e) {
+                console.error("OneSignal hatası:", e);
+                showErrorMessage(e.message);
+            }
+        });
+
+        function showSuccessMessage() {
+            document.body.innerHTML = `
+                <div style="text-align:center; margin-top:100px; color:#2ecc71; font-family:Arial, sans-serif;">
+                    <h2>✅ Kayıt Başarıyla Tamamlandı!</h2>
+                    <p>Duyuruları ve maaş bildirimlerini alacaksınız.</p>
+                    <p><strong>Tarayıcı izin kutusuna da "İzin Ver" bastığınızdan emin olun.</strong></p>
+                    <p>Bu pencereyi güvenle kapatabilirsiniz.</p>
+                </div>`;
+        }
+
+        function showPartialSuccessMessage() {
+            document.body.innerHTML = `
+                <div style="text-align:center; margin-top:100px; color:#e67e22; font-family:Arial, sans-serif;">
+                    <h2>⏳ İzin Kutusu Bekleniyor...</h2>
+                    <p style="font-size:1.1em;"><strong>Lütfen tarayıcıdan çıkan tam ekran izin kutusuna "İzin Ver" basın!</strong></p>
+                    <p>Kutu çıkmadıysa veya kapandıysa:</p>
+                    <ol style="text-align:left; display:inline-block; margin:20px 0;">
+                        <li>Chrome > Ayarlar > Site ayarları > Bildirimler</li>
+                        <li>Siteyi bulup <strong>"İzin Ver"</strong> seçin.</li>
+                    </ol>
+                    <p style="color:red; font-weight:bold;">Pencereyi kapatmayın – 20 saniye bekleyin!</p>
+                </div>`;
+            setTimeout(() => { window.close(); }, 20000);
+        }
+
+        function showErrorMessage(msg) {
+            document.body.innerHTML = `
+                <div style="text-align:center; margin-top:100px; color:red; font-family:Arial, sans-serif;">
+                    <h2>❌ Hata Oluştu</h2>
+                    <p>${msg}</p>
+                    <p>Lütfen sayfayı yenileyip tekrar deneyin.</p>
+                </div>`;
+        }
     </script>
 </head>
-<body style="text-align:center; font-family:sans-serif; padding:50px; background-color:#f4f4f4; color:#333;">
-    <div style="background:white; padding:30px; border-radius:15px; box-shadow:0 5px 15px rgba(0,0,0,0.1); display:inline-block; width:90%; max-width:400px;">
-        <h2 style="color:#eb4d4b;">🔔 Duyuru Kaydı</h2>
-        <p id="status-text">Lütfen çıkan kutucukta <b>"İzin Ver"</b> butonuna basın.<br><br>
-        <span style="font-size:12px; color:#888;">Kayıt tamamlanana kadar lütfen bekleyin...</span>
-        </p>
-        <hr style="border:0; border-top:1px solid #eee; margin:20px 0;">
-        <button onclick="location.reload()" style="padding:10px; cursor:pointer;">Kutu Gelmezse Sayfayı Yenile</button>
+<body style="font-family:Arial, sans-serif; text-align:center; padding:50px; background:#f0f8ff;">
+    <div style="background:white; padding:40px; border-radius:20px; box-shadow:0 10px 30px rgba(0,0,0,0.1); max-width:500px; margin:0 auto;">
+        <h2 style="color:#2ecc71;">🔔 Bildirim Kaydı Yapılıyor...</h2>
+        <p style="font-size:1.2em; margin:30px 0;">Lütfen çıkan <b>"Evet, İzin Ver"</b> butonuna basın.</p>
+        <p><small>Android'de izin kutusu gecikebilir. Çıkmazsa Chrome ayarlarından manuel izin verin.</small></p>
     </div>
 </body>
 </html>
