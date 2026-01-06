@@ -21,10 +21,7 @@
         OneSignalDeferred.push(async function(OneSignal) {
             try {
                 await OneSignal.init({
-                                        // Slidedown kabul edildiğinde native prompt'u zorla tetikle
-                    OneSignal.Slidedown.addEventListener("slidedownAccept", async () => {
-                      await OneSignal.Notifications.requestPermission();
-                    });
+
                     appId: appId,
                     allowLocalhostAsSecureOrigin: true,
                     serviceWorkerParam: { scope: '/' },
