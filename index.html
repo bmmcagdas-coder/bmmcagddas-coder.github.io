@@ -42,10 +42,13 @@
             if (uid) {
                 OneSignal.login(uid);
             }
+        });
 
-            // SDK hazır – butonu aktif et
+        // SDK tamamen yüklendiğinde (en güvenilir yöntem)
+        OneSignal.on("sdkLoaded", function() {
             const setupBtn = document.getElementById('setup-btn');
             const statusText = document.getElementById('status-text');
+
             setupBtn.disabled = false;
             setupBtn.style.background = '#2ecc71';
             setupBtn.style.cursor = 'pointer';
@@ -85,8 +88,7 @@
             };
 
             // Zaten aboneyse otomatik başarı
-            OneSignal.push(async function() {
-                const subId = await OneSignal.User.PushSubscription.id;
+            OneSignal.User.PushSubscription.id.then(subId => {
                 if (subId) {
                     showSuccess();
                 }
