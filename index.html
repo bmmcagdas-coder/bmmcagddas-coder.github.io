@@ -43,10 +43,12 @@
                 OneSignal.login(uid);
             }
 
-            document.getElementById('setup-btn').onclick = async function() {
-                const statusText = document.getElementById('status-text');
-                const btn = this;
-                btn.disabled = true;
+            // === BUTON FONKSİYONU SDK HAZIR OLDUKTAN SONRA TANIMLANIYOR ===
+            const setupBtn = document.getElementById('setup-btn');
+            const statusText = document.getElementById('status-text');
+
+            setupBtn.onclick = async function() {
+                setupBtn.disabled = true;
                 statusText.innerHTML = "İzin isteniyor...";
 
                 try {
@@ -73,11 +75,11 @@
                 } catch (err) {
                     console.error(err);
                     statusText.innerHTML = "Hata: " + (err.message || "Bilinmeyen hata");
-                    btn.disabled = false;
+                    setupBtn.disabled = false;
                 }
             };
 
-            // Zaten aboneyse otomatik başarı
+            // Zaten aboneyse otomatik başarı göster
             OneSignal.push(async function() {
                 const subId = await OneSignal.User.PushSubscription.id;
                 if (subId) {
